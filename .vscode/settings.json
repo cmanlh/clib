@@ -1,0 +1,12 @@
+{
+    "C_Cpp.clang_format_fallbackStyle": "Google",
+    "C_Cpp.clang_format_style": "{ BasedOnStyle: Google, UseTab: Never, IndentWidth: 4, TabWidth: 4, ColumnLimit: 0}",
+    "files.associations": {
+        "*.c": "c",
+        "*.h": "c",
+        "*.makefile": "makefile",
+        "*.m": "c",
+        "random": "c",
+        "cstdlib": "c"
+    }
+}
