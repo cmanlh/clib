@@ -25,8 +25,10 @@
 #ifndef CMANLH_RIFF
 #define CMANLH_RIFF
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 typedef enum RiffFourCC {
     RIFF_FOURCC_RIFF,
@@ -34,12 +36,17 @@ typedef enum RiffFourCC {
     RIFF_FOURCC_UNKNOW
 } RiffFourCC;
 
-typedef struct RiffChunk {
-    /* data */
-} RiffChunk;
+typedef struct RiffSubChunk {
+    char fourcc[5];
+    uint32_t size;
+} RiffSubChunk;
 
-RiffFourCC riff_read_fourcc(FILE *file);
+bool riff_read_fourcc(char *fourcc, FILE *file);
 
 uint32_t riff_read_size(FILE *file);
+
+RiffSubChunk riff_read_chunk_info(FILE *file);
+
+RiffSubChunk riff_read_chunk(FILE *file);
 
 #endif

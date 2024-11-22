@@ -37,20 +37,41 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    switch (riff_read_fourcc(file)) {
-        case RIFF_FOURCC_RIFF: {
-            printf("Get riff.");
-            break;
-        }
-        case RIFF_FOURCC_LIST: {
-            printf("Get list.");
-            break;
-        }
-        default:
-            break;
+    char fourcc[5];
+    if (riff_read_fourcc(fourcc, file)) {
+        fourcc[4] = '\0';
+        printf("FourCC : %s\n", fourcc);
     }
 
-    printf("\n%d", riff_read_size(file));
+    printf("%d\n", riff_read_size(file));
+
+    if (riff_read_fourcc(fourcc, file)) {
+        fourcc[4] = '\0';
+        printf("FourCC : %s\n", fourcc);
+    }
+
+    if (riff_read_fourcc(fourcc, file)) {
+        fourcc[4] = '\0';
+        printf("FourCC : %s\n", fourcc);
+    }
+
+    printf("%d\n", riff_read_size(file));
+
+    if (riff_read_fourcc(fourcc, file)) {
+        fourcc[4] = '\0';
+        printf("FourCC : %s\n", fourcc);
+    }
+
+    RiffSubChunk chunk;
+    static char *RIFF_TYPE_LIST = "LIST";
+
+    while (true) {
+        chunk = riff_read_chunk_info(file);
+        if (0 == chunk.size) {
+            break;
+        }
+        printf("FourCC : %s Size : %d\n", chunk.fourcc, chunk.size);
+    }
 
     fclose(file);
 

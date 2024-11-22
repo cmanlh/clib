@@ -28,6 +28,8 @@
 
 #include <string.h>
 
+static char *RIFF_TYPE_LIST = "LIST";
+
 uint32_t riff_read_size(FILE *file) {
     uint8_t chunkSize[4];
     size_t bytesRead = fread(&chunkSize, 1, 4, file);
@@ -42,25 +44,41 @@ uint32_t riff_read_size(FILE *file) {
     }
 }
 
-RiffFourCC riff_read_fourcc(FILE *file) {
-    static char *STR_RIFF = "RIFF";
-    static char *STR_LIST = "LIST";
-
-    char fourcc[5];
-    size_t bytesRead = fread(&fourcc, 1, 4, file);
+bool riff_read_fourcc(char *fourcc, FILE *file) {
+    size_t bytesRead = fread(fourcc, 1, 4, file);
     if (bytesRead != 4) {
         if (feof(file)) {
             printf("Reached the end of the file.");
         } else if (ferror(file)) {
             perror("Failed to read the file.");
         }
+        return false;
     } else {
-        fourcc[4] = '\0';
-        if (strcmp(STR_RIFF, fourcc) == 0) {
-            return RIFF_FOURCC_RIFF;
-        } else if (strcmp(STR_LIST, fourcc) == 0) {
-            return RIFF_FOURCC_LIST;
-        }
+        return true;
     }
-    return RIFF_FOURCC_UNKNOW;
 }
+
+RiffSubChunk riff_read_chunk_info(FILE *file) {
+    RiffSubChunk chunk;
+
+    if (riff_read_fourcc(chunk.fourcc, file)) {
+        chunk.fourcc[4] = '\0';
+        chunk.size = riff_read_size(file);
+
+        if (0 == strcmp(RIFF_TYPE_LIST, chunk.fourcc)) {
+            printf("FourCC : %s Size : %d\n", chunk.fourcc, chunk.size);
+
+            riff_read_fourcc(chunk.fourcc, file);
+            chunk.fourcc[4] = '\0';
+            chunk.size -= 4;
+        } else {
+            fseek(file, chunk.size, SEEK_CUR);
+        }
+    } else {
+        chunk.size = 0;
+    }
+
+    return chunk;
+}
+
+RiffSubChunk riff_read_chunk(FILE *file);
