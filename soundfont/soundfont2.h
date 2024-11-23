@@ -22,31 +22,47 @@
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 */
-#ifndef CMANLH_RIFF
-#define CMANLH_RIFF
+#ifndef CMANLH_SOUNDFONT
+#define CMANLH_SOUNDFONT
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-typedef enum RiffFourCC {
-    RIFF_FOURCC_RIFF,
-    RIFF_FOURCC_LIST,
-    RIFF_FOURCC_UNKNOW
-} RiffFourCC;
+typedef struct SoundFontInfo {
+    uint32_t size;
+    uint16_t major;  // major version of the sound font file
+    uint16_t minor;  // minor version of the sound font file
+    char *engine;
+    char *name;
+    char *romName;
+    uint16_t romMajor;
+    uint16_t romMinor;
+    char *createDate;
+    char *author;
+    char *product;
+    char *copyright;
+    char *comments;
+    char *tools;
+} SoundFontInfo;
 
-typedef struct RiffSubChunk {
+typedef struct SoundFontChunk {
     char fourcc[5];
     uint32_t size;
-} RiffSubChunk;
+} SoundFontChunk;
 
-bool riff_read_fourcc(char *fourcc, FILE *file);
+bool soundfont_read_fourcc(char *fourcc, FILE *file);
 
-uint32_t riff_read_size(FILE *file);
+uint32_t soundfont_read_size(FILE *file);
 
-RiffSubChunk riff_read_chunk_info(FILE *file);
+SoundFontChunk soundfont_read_chunk_info(FILE *file);
 
-RiffSubChunk riff_read_chunk(FILE *file);
+SoundFontChunk soundfont_read_chunk(FILE *file);
+
+void soundfont_init_info(SoundFontInfo *info);
+void soundfont_read_info(SoundFontInfo *info, FILE *file);
+void soundfont_release_info(SoundFontInfo *info);
 
 #endif

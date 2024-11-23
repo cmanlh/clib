@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "riff.h"
+#include "soundfont2.h"
 
 int main() {
     FILE *file = fopen("resources/ProtoSquare.sf2", "rb");
@@ -38,41 +38,49 @@ int main() {
     }
 
     char fourcc[5];
-    if (riff_read_fourcc(fourcc, file)) {
+    if (soundfont_read_fourcc(fourcc, file)) {
         fourcc[4] = '\0';
         printf("FourCC : %s\n", fourcc);
     }
 
-    printf("%d\n", riff_read_size(file));
+    printf("%d\n", soundfont_read_size(file));
 
-    if (riff_read_fourcc(fourcc, file)) {
+    if (soundfont_read_fourcc(fourcc, file)) {
         fourcc[4] = '\0';
         printf("FourCC : %s\n", fourcc);
     }
 
-    if (riff_read_fourcc(fourcc, file)) {
+    if (soundfont_read_fourcc(fourcc, file)) {
         fourcc[4] = '\0';
         printf("FourCC : %s\n", fourcc);
     }
 
-    printf("%d\n", riff_read_size(file));
+    printf("%d\n", soundfont_read_size(file));
 
-    if (riff_read_fourcc(fourcc, file)) {
+    if (soundfont_read_fourcc(fourcc, file)) {
         fourcc[4] = '\0';
         printf("FourCC : %s\n", fourcc);
     }
 
-    RiffSubChunk chunk;
-    static char *RIFF_TYPE_LIST = "LIST";
+    SoundFontChunk chunk;
+    static char *SOUNDFONT_TYPE_LIST = "LIST";
+    SoundFontInfo info;
+    info.size = 194;
+    soundfont_init_info(&info);
+    soundfont_read_info(&info, file);
+    printf("major : %d minor : %d\n", info.major, info.minor);
+    printf("engine : %s\n", info.engine);
+    printf("name : %s\n", info.name);
+    printf("romName : %s\n", info.romName);
+    printf("romMajor : %d romMinor : %d\n", info.romMajor, info.romMinor);
+    printf("createDate : %s\n", info.createDate);
+    printf("author : %s\n", info.author);
+    printf("product : %s\n", info.product);
+    printf("copyright : %s\n", info.copyright);
+    printf("comments : %s\n", info.comments);
+    printf("tools : %s\n", info.tools);
 
-    while (true) {
-        chunk = riff_read_chunk_info(file);
-        if (0 == chunk.size) {
-            break;
-        }
-        printf("FourCC : %s Size : %d\n", chunk.fourcc, chunk.size);
-    }
-
+    soundfont_release_info(&info);
     fclose(file);
 
     return EXIT_SUCCESS;
