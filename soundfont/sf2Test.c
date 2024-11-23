@@ -31,7 +31,7 @@
 #include "soundfont2.h"
 
 int main() {
-    FILE *file = fopen("resources/ProtoSquare.sf2", "rb");
+    FILE *file = fopen("C:\\Users\\luhong\\Downloads\\FSS-SteelStringGuitar-SF2-20200521.tar\\FSS-SteelStringGuitar-SF2-20200521\\FSS-SteelStringGuitar-20200521.sf2", "rb");
     if (file == NULL) {
         perror("Can't open the file.");
         return EXIT_FAILURE;
@@ -54,8 +54,8 @@ int main() {
         fourcc[4] = '\0';
         printf("FourCC : %s\n", fourcc);
     }
-
-    printf("%d\n", soundfont_read_size(file));
+    uint32_t subChunkSize = soundfont_read_size(file);
+    printf("%d\n", subChunkSize);
 
     if (soundfont_read_fourcc(fourcc, file)) {
         fourcc[4] = '\0';
@@ -65,22 +65,40 @@ int main() {
     SoundFontChunk chunk;
     static char *SOUNDFONT_TYPE_LIST = "LIST";
     SoundFontInfo info;
-    info.size = 194;
+    info.size = subChunkSize - 4;
     soundfont_init_info(&info);
     soundfont_read_info(&info, file);
-    printf("major : %d minor : %d\n", info.major, info.minor);
-    printf("engine : %s\n", info.engine);
-    printf("name : %s\n", info.name);
-    printf("romName : %s\n", info.romName);
-    printf("romMajor : %d romMinor : %d\n", info.romMajor, info.romMinor);
-    printf("createDate : %s\n", info.createDate);
-    printf("author : %s\n", info.author);
-    printf("product : %s\n", info.product);
-    printf("copyright : %s\n", info.copyright);
-    printf("comments : %s\n", info.comments);
-    printf("tools : %s\n", info.tools);
+    soundfont_print_info(&info);
+
+    if (soundfont_read_fourcc(fourcc, file)) {
+        fourcc[4] = '\0';
+        printf("FourCC : %s\n", fourcc);
+    }
+    subChunkSize = soundfont_read_size(file);
+    printf("%d\n", subChunkSize);
+
+    if (soundfont_read_fourcc(fourcc, file)) {
+        fourcc[4] = '\0';
+        printf("FourCC : %s\n", fourcc);
+    }
+
+    SoundFontSdtaData sdta;
+    soundfont_read_sdta(&sdta, file);
+
+    if (soundfont_read_fourcc(fourcc, file)) {
+        fourcc[4] = '\0';
+        printf("FourCC : %s\n", fourcc);
+    }
+    subChunkSize = soundfont_read_size(file);
+    printf("%d\n", subChunkSize);
+
+    if (soundfont_read_fourcc(fourcc, file)) {
+        fourcc[4] = '\0';
+        printf("FourCC : %s\n", fourcc);
+    }
 
     soundfont_release_info(&info);
+    soundfont_release_sdta(&sdta);
     fclose(file);
 
     return EXIT_SUCCESS;

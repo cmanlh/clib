@@ -48,6 +48,11 @@ typedef struct SoundFontInfo {
     char *tools;
 } SoundFontInfo;
 
+typedef struct SoundFontSdtaData {
+    uint8_t *data;
+    uint32_t size;
+} SoundFontSdtaData;
+
 typedef struct SoundFontChunk {
     char fourcc[5];
     uint32_t size;
@@ -64,5 +69,9 @@ SoundFontChunk soundfont_read_chunk(FILE *file);
 void soundfont_init_info(SoundFontInfo *info);
 void soundfont_read_info(SoundFontInfo *info, FILE *file);
 void soundfont_release_info(SoundFontInfo *info);
+void soundfont_print_info(SoundFontInfo *info);
+
+bool soundfont_read_sdta(SoundFontSdtaData *sdta, FILE *file);
+void soundfont_release_sdta(SoundFontSdtaData *sdta);
 
 #endif
