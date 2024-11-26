@@ -31,6 +31,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef enum SoundFontListType {
+    SOUNDFONT_TYPE_INFO,
+    SOUNDFONT_TYPE_SDTA,
+    SOUNDFONT_TYPE_PDTA,
+    SOUNDFONT_TYPE_UNKNOW
+} SoundFontListType;
+
 typedef struct SoundFontInfo {
     uint32_t size;
     uint16_t major;  // major version of the sound font file
@@ -53,6 +60,45 @@ typedef struct SoundFontSdtaData {
     uint32_t size;
 } SoundFontSdtaData;
 
+typedef struct SoundFontPresetHeader {
+    char name[20];
+    uint16_t preset;
+    uint16_t bank;
+    uint16_t presetBagNdx;
+    uint32_t library;
+    uint32_t genre;
+    uint32_t morphology;
+} SoundFontPresetHeader;
+
+typedef struct SoundFontPresetIndex {
+    uint16_t genNdx;
+    uint16_t modNdx;
+} SoundFontPresetIndex;
+
+typedef struct SoundFontPresetMod {
+    uint16_t srcOperator;
+    uint16_t destOperator;
+    uint16_t amount;
+    uint16_t amtSrcOperator;
+    uint16_t transOperator;
+} SoundFontPresetMod;
+
+typedef struct SoundFontPresetGen {
+    uint16_t operator;
+    uint16_t amount;
+} SoundFontPresetGen;
+
+typedef struct SoundFontPdtaData {
+    SoundFontPresetHeader *presetHeader;
+    uint16_t presetHeaderSize;
+    SoundFontPresetIndex *presetIndex;
+    uint16_t presetIndexSize;
+    SoundFontPresetMod *presetMod;
+    uint16_t presetModSize;
+    SoundFontPresetGen *presetGen;
+    uint16_t presetGenSize;
+} SoundFontPdtaData;
+
 typedef struct SoundFontChunk {
     char fourcc[5];
     uint32_t size;
@@ -66,6 +112,8 @@ SoundFontChunk soundfont_read_chunk_info(FILE *file);
 
 SoundFontChunk soundfont_read_chunk(FILE *file);
 
+SoundFontListType soundfont_fetch_list_type(FILE *file, uint32_t *size);
+
 void soundfont_init_info(SoundFontInfo *info);
 void soundfont_read_info(SoundFontInfo *info, FILE *file);
 void soundfont_release_info(SoundFontInfo *info);
@@ -73,5 +121,10 @@ void soundfont_print_info(SoundFontInfo *info);
 
 bool soundfont_read_sdta(SoundFontSdtaData *sdta, FILE *file);
 void soundfont_release_sdta(SoundFontSdtaData *sdta);
+
+void soundfont_init_pdta(SoundFontPdtaData *pdta);
+bool soundfont_read_pdta(SoundFontPdtaData *pdta, uint32_t size, FILE *file);
+void soundfont_release_pdta(SoundFontPdtaData *pdta);
+void soundfont_print_pdta(SoundFontPdtaData *info);
 
 #endif
