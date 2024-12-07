@@ -75,28 +75,46 @@ typedef struct SoundFontPresetIndex {
     uint16_t modNdx;
 } SoundFontPresetIndex;
 
-typedef struct SoundFontPresetMod {
+typedef struct SoundFontMod {
     uint16_t srcOperator;
     uint16_t destOperator;
     uint16_t amount;
     uint16_t amtSrcOperator;
     uint16_t transOperator;
-} SoundFontPresetMod;
+} SoundFontMod;
 
-typedef struct SoundFontPresetGen {
+typedef struct SoundFontGen {
     uint16_t operator;
     uint16_t amount;
-} SoundFontPresetGen;
+} SoundFontGen;
+
+typedef struct SoundFontPresetInst {
+    char name[20];
+    uint16_t index;
+} SoundFontPresetInst;
+
+typedef struct SoundFontPresetIbag {
+    uint16_t genNdx;
+    uint16_t modNdx;
+} SoundFontPresetIbag;
 
 typedef struct SoundFontPdtaData {
     SoundFontPresetHeader *presetHeader;
     uint16_t presetHeaderSize;
     SoundFontPresetIndex *presetIndex;
     uint16_t presetIndexSize;
-    SoundFontPresetMod *presetMod;
+    SoundFontMod *presetMod;
     uint16_t presetModSize;
-    SoundFontPresetGen *presetGen;
+    SoundFontGen *presetGen;
     uint16_t presetGenSize;
+    SoundFontPresetInst *presetInst;
+    uint16_t presetInstSize;
+    SoundFontPresetIbag *presetIbag;
+    uint16_t presetIbagSize;
+    SoundFontMod *iMod;  // the instrument modulator list
+    uint16_t iModSize;   // the size of the instrument modulator list
+    SoundFontGen *iGen;  // the instrument generator list
+    uint16_t iGenSize;   // the size of the instrument generator list
 } SoundFontPdtaData;
 
 typedef struct SoundFontChunk {

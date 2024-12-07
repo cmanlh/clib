@@ -34,16 +34,28 @@ static char *STR_PDTA_TYPE_PHDR = "phdr";
 static char *STR_PDTA_TYPE_PBAG = "pbag";
 static char *STR_PDTA_TYPE_PMOD = "pmod";
 static char *STR_PDTA_TYPE_PGEN = "pgen";
+static char *STR_PDTA_TYPE_INST = "inst";
+static char *STR_PDTA_TYPE_IBAG = "ibag";
+static char *STR_PDTA_TYPE_IMOD = "imod";
+static char *STR_PDTA_TYPE_IGEN = "igen";
 
 static bool read_pdta_preset_header(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
 static bool read_pdta_preset_index(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
 static bool read_pdta_preset_mod(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
 static bool read_pdta_preset_gen(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
+static bool read_pdta_preset_inst(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
+static bool read_pdta_preset_ibag(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
+static bool read_pdta_inst_mod(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
+static bool read_pdta_inst_gen(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
 
 static void print_pdta_preset_header(SoundFontPdtaData *pdta);
 static void print_pdta_preset_index(SoundFontPdtaData *pdta);
 static void print_pdta_preset_mod(SoundFontPdtaData *pdta);
 static void print_pdta_preset_gen(SoundFontPdtaData *pdta);
+static void print_pdta_preset_inst(SoundFontPdtaData *pdta);
+static void print_pdta_preset_ibag(SoundFontPdtaData *pdta);
+static void print_pdta_inst_mod(SoundFontPdtaData *pdta);
+static void print_pdta_inst_gen(SoundFontPdtaData *pdta);
 
 uint32_t soundfont_read_size(FILE *file) {
     uint8_t chunkSize[4];
@@ -136,6 +148,18 @@ void soundfont_init_pdta(SoundFontPdtaData *pdta) {
 
     pdta->presetGen = NULL;
     pdta->presetGenSize = 0;
+
+    pdta->presetInst = NULL;
+    pdta->presetInstSize = 0;
+
+    pdta->presetIbag = NULL;
+    pdta->presetIbagSize = 0;
+
+    pdta->iMod = NULL;
+    pdta->iModSize = 0;
+
+    pdta->iGen = NULL;
+    pdta->iGenSize = 0;
 }
 
 bool soundfont_read_pdta(SoundFontPdtaData *pdta, uint32_t size, FILE *file) {
@@ -175,6 +199,38 @@ bool soundfont_read_pdta(SoundFontPdtaData *pdta, uint32_t size, FILE *file) {
         }
     }
 
+    if (soundfont_read_fourcc(fourcc, file)) {
+        pdtaSize -= 4;
+
+        if (0 == strcmp(STR_PDTA_TYPE_INST, fourcc)) {
+            read_pdta_preset_inst(pdta, &pdtaSize, file);
+        }
+    }
+
+    if (soundfont_read_fourcc(fourcc, file)) {
+        pdtaSize -= 4;
+
+        if (0 == strcmp(STR_PDTA_TYPE_IBAG, fourcc)) {
+            read_pdta_preset_ibag(pdta, &pdtaSize, file);
+        }
+    }
+
+    if (soundfont_read_fourcc(fourcc, file)) {
+        pdtaSize -= 4;
+
+        if (0 == strcmp(STR_PDTA_TYPE_IMOD, fourcc)) {
+            read_pdta_inst_mod(pdta, &pdtaSize, file);
+        }
+    }
+
+    if (soundfont_read_fourcc(fourcc, file)) {
+        pdtaSize -= 4;
+
+        if (0 == strcmp(STR_PDTA_TYPE_IGEN, fourcc)) {
+            read_pdta_inst_gen(pdta, &pdtaSize, file);
+        }
+    }
+
     return true;
 }
 
@@ -191,6 +247,18 @@ void soundfont_release_pdta(SoundFontPdtaData *pdta) {
     if (NULL != pdta->presetGen) {
         free(pdta->presetGen);
     }
+    if (NULL != pdta->presetInst) {
+        free(pdta->presetInst);
+    }
+    if (NULL != pdta->presetIbag) {
+        free(pdta->presetIbag);
+    }
+    if (NULL != pdta->iMod) {
+        free(pdta->iMod);
+    }
+    if (NULL != pdta->iGen) {
+        free(pdta->iGen);
+    }
 }
 
 void soundfont_print_pdta(SoundFontPdtaData *pdta) {
@@ -198,6 +266,10 @@ void soundfont_print_pdta(SoundFontPdtaData *pdta) {
     print_pdta_preset_index(pdta);
     print_pdta_preset_mod(pdta);
     print_pdta_preset_gen(pdta);
+    print_pdta_preset_inst(pdta);
+    print_pdta_preset_ibag(pdta);
+    print_pdta_inst_mod(pdta);
+    print_pdta_inst_gen(pdta);
 }
 
 bool soundfont_read_sdta(SoundFontSdtaData *sdta, FILE *file) {
@@ -479,11 +551,11 @@ static bool read_pdta_preset_mod(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FI
         return false;
     }
     pdta->presetModSize = chunkSize / MOD_SIZE;
-    pdta->presetMod = (SoundFontPresetMod *)malloc(sizeof(SoundFontPresetMod) * pdta->presetModSize);
+    pdta->presetMod = (SoundFontMod *)malloc(sizeof(SoundFontMod) * pdta->presetModSize);
 
     uint8_t buffer[2];
     for (int i = 0; i < pdta->presetModSize; i++) {
-        SoundFontPresetMod *mod = pdta->presetMod + i;
+        SoundFontMod *mod = pdta->presetMod + i;
 
         fread(&buffer, 1, 2, file);
         mod->srcOperator = buffer[0] | buffer[1] << 8;
@@ -509,7 +581,7 @@ static bool read_pdta_preset_mod(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FI
 static void print_pdta_preset_mod(SoundFontPdtaData *pdta) {
     printf("\n=== PDTA PRESET MOD START ===\n");
     for (int i = 0; i < pdta->presetModSize; i++) {
-        SoundFontPresetMod *mod = pdta->presetMod + i;
+        SoundFontMod *mod = pdta->presetMod + i;
         printf("srcOperator : %d ", mod->srcOperator);
         printf("destOperator : %d ", mod->destOperator);
         printf("amount : %d ", mod->amount);
@@ -533,11 +605,11 @@ static bool read_pdta_preset_gen(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FI
         return false;
     }
     pdta->presetGenSize = chunkSize / GEN_SIZE;
-    pdta->presetGen = (SoundFontPresetGen *)malloc(sizeof(SoundFontPresetGen) * pdta->presetGenSize);
+    pdta->presetGen = (SoundFontGen *)malloc(sizeof(SoundFontGen) * pdta->presetGenSize);
 
     uint8_t buffer[2];
     for (int i = 0; i < pdta->presetGenSize; i++) {
-        SoundFontPresetGen *gen = pdta->presetGen + i;
+        SoundFontGen *gen = pdta->presetGen + i;
 
         fread(&buffer, 1, 2, file);
         gen->operator= buffer[0] | buffer[1] << 8;
@@ -554,8 +626,186 @@ static bool read_pdta_preset_gen(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FI
 static void print_pdta_preset_gen(SoundFontPdtaData *pdta) {
     printf("\n=== PDTA PRESET GENERATOR START ===\n");
     for (int i = 0; i < pdta->presetGenSize; i++) {
-        SoundFontPresetGen *gen = pdta->presetGen + i;
+        SoundFontGen *gen = pdta->presetGen + i;
         printf("operator : %d amount : %d\n", gen->operator, gen->amount);
     }
     printf("=== PDTA PRESET GENERATOR END   ===\n");
+}
+
+static bool read_pdta_preset_inst(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file) {
+    uint32_t chunkSize = soundfont_read_size(file);
+    if (chunkSize <= 0) {
+        printf("Failed to fetch the size of preset instructment names and indices.");
+        return false;
+    }
+    *pdtaSize -= 4;
+
+    uint16_t INST_SIZE = 22;
+    if (chunkSize % INST_SIZE != 0) {
+        printf("Broken data for preset instructment names and indices.");
+        return false;
+    }
+    pdta->presetInstSize = chunkSize / INST_SIZE;
+    pdta->presetInst = (SoundFontPresetInst *)malloc(sizeof(SoundFontPresetInst) * pdta->presetInstSize);
+
+    uint8_t buffer[2];
+    for (int i = 0; i < pdta->presetInstSize; i++) {
+        SoundFontPresetInst *inst = pdta->presetInst + i;
+
+        if (20 != fread(inst->name, 1, 20, file)) {
+            return false;
+        }
+
+        fread(&buffer, 1, 2, file);
+        inst->index = buffer[0] | buffer[1] << 8;
+    }
+
+    *pdtaSize -= chunkSize;
+
+    return true;
+}
+
+static void print_pdta_preset_inst(SoundFontPdtaData *pdta) {
+    printf("\n=== PDTA PRESET INSTRUMENT NAME AND INDICES START ===\n");
+    for (int i = 0; i < pdta->presetInstSize; i++) {
+        SoundFontPresetInst *inst = pdta->presetInst + i;
+        printf("name : %s index : %d\n", inst->name, inst->index);
+    }
+    printf("=== PDTA PRESET INSTRUMENT NAME AND INDICES END   ===\n");
+}
+
+static bool read_pdta_preset_ibag(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file) {
+    uint32_t chunkSize = soundfont_read_size(file);
+    if (chunkSize <= 0) {
+        printf("Failed to fetch the size of preset instrument index list.");
+        return false;
+    }
+    *pdtaSize -= 4;
+
+    uint16_t IBAG_SIZE = 4;
+    if (chunkSize % IBAG_SIZE != 0) {
+        printf("Broken data for preset instrument index list.");
+        return false;
+    }
+    pdta->presetIbagSize = chunkSize / IBAG_SIZE;
+    pdta->presetIbag = (SoundFontPresetIbag *)malloc(sizeof(SoundFontPresetIbag) * pdta->presetIbagSize);
+
+    uint8_t buffer[2];
+    for (int i = 0; i < pdta->presetIbagSize; i++) {
+        SoundFontPresetIbag *ibag = pdta->presetIbag + i;
+
+        fread(&buffer, 1, 2, file);
+        ibag->genNdx = buffer[0] | buffer[1] << 8;
+
+        fread(&buffer, 1, 2, file);
+        ibag->modNdx = buffer[0] | buffer[1] << 8;
+    }
+
+    *pdtaSize -= chunkSize;
+
+    return true;
+}
+
+static void print_pdta_preset_ibag(SoundFontPdtaData *pdta) {
+    printf("\n=== PDTA PRESET INSTRUMENT INDEX START ===\n");
+    for (int i = 0; i < pdta->presetIbagSize; i++) {
+        SoundFontPresetIbag *ibag = pdta->presetIbag + i;
+        printf("genNdx : %d modNdx : %d\n", ibag->genNdx, ibag->modNdx);
+    }
+    printf("=== PDTA PRESET INSTRUMENT INDEX END   ===\n");
+}
+
+static bool read_pdta_inst_mod(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file) {
+    uint32_t chunkSize = soundfont_read_size(file);
+    if (chunkSize <= 0) {
+        printf("Failed to fetch the size of instrument mod.");
+        return false;
+    }
+    *pdtaSize -= 4;
+
+    uint16_t MOD_SIZE = 10;
+    if (chunkSize % MOD_SIZE != 0) {
+        printf("Broken data for instrument mod.");
+        return false;
+    }
+    pdta->iModSize = chunkSize / MOD_SIZE;
+    pdta->iMod = (SoundFontMod *)malloc(sizeof(SoundFontMod) * pdta->iModSize);
+
+    uint8_t buffer[2];
+    for (int i = 0; i < pdta->iModSize; i++) {
+        SoundFontMod *mod = pdta->iMod + i;
+
+        fread(&buffer, 1, 2, file);
+        mod->srcOperator = buffer[0] | buffer[1] << 8;
+
+        fread(&buffer, 1, 2, file);
+        mod->destOperator = buffer[0] | buffer[1] << 8;
+
+        fread(&buffer, 1, 2, file);
+        mod->amount = buffer[0] | buffer[1] << 8;
+
+        fread(&buffer, 1, 2, file);
+        mod->amtSrcOperator = buffer[0] | buffer[1] << 8;
+
+        fread(&buffer, 1, 2, file);
+        mod->transOperator = buffer[0] | buffer[1] << 8;
+    }
+
+    *pdtaSize -= chunkSize;
+
+    return true;
+}
+
+static void print_pdta_inst_mod(SoundFontPdtaData *pdta) {
+    printf("\n=== PDTA INSTRUMENT MOD START ===\n");
+    for (int i = 0; i < pdta->iModSize; i++) {
+        SoundFontMod *mod = pdta->iMod + i;
+        printf("srcOperator : %d ", mod->srcOperator);
+        printf("destOperator : %d ", mod->destOperator);
+        printf("amount : %d ", mod->amount);
+        printf("amtSrcOperator : %d ", mod->amtSrcOperator);
+        printf("transOperator : %d\n", mod->transOperator);
+    }
+    printf("=== PDTA INSTRUMENT MOD END   ===\n");
+}
+
+static bool read_pdta_inst_gen(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file) {
+    uint32_t chunkSize = soundfont_read_size(file);
+    if (chunkSize <= 0) {
+        printf("Failed to fetch the size of instrument generator.");
+        return false;
+    }
+    *pdtaSize -= 4;
+
+    uint16_t GEN_SIZE = 4;
+    if (chunkSize % GEN_SIZE != 0) {
+        printf("Broken data for instrument generator.");
+        return false;
+    }
+    pdta->iGenSize = chunkSize / GEN_SIZE;
+    pdta->iGen = (SoundFontGen *)malloc(sizeof(SoundFontGen) * pdta->presetGenSize);
+
+    uint8_t buffer[2];
+    for (int i = 0; i < pdta->iGenSize; i++) {
+        SoundFontGen *gen = pdta->iGen + i;
+
+        fread(&buffer, 1, 2, file);
+        gen->operator= buffer[0] | buffer[1] << 8;
+
+        fread(&buffer, 1, 2, file);
+        gen->amount = buffer[0] | buffer[1] << 8;
+    }
+
+    *pdtaSize -= chunkSize;
+
+    return true;
+}
+
+static void print_pdta_inst_gen(SoundFontPdtaData *pdta) {
+    printf("\n=== PDTA PRESET INSTRUMENT START ===\n");
+    for (int i = 0; i < pdta->iGenSize; i++) {
+        SoundFontGen *gen = pdta->iGen + i;
+        printf("operator : %d amount : %d\n", gen->operator, gen->amount);
+    }
+    printf("=== PDTA PRESET INSTRUMENT END   ===\n");
 }
