@@ -98,6 +98,19 @@ typedef struct SoundFontPresetIbag {
     uint16_t modNdx;
 } SoundFontPresetIbag;
 
+typedef struct SoundFontSample {
+    char name[20];
+    uint32_t start;
+    uint32_t end;
+    uint32_t startLoop;
+    uint32_t endLoop;
+    uint32_t sampleRate;
+    uint8_t originalPitch;
+    char pitchCorrection;
+    uint16_t sampleLink;
+    uint16_t sampleType;
+} SoundFontSample;
+
 typedef struct SoundFontPdtaData {
     SoundFontPresetHeader *presetHeader;
     uint16_t presetHeaderSize;
@@ -115,6 +128,8 @@ typedef struct SoundFontPdtaData {
     uint16_t iModSize;   // the size of the instrument modulator list
     SoundFontGen *iGen;  // the instrument generator list
     uint16_t iGenSize;   // the size of the instrument generator list
+    SoundFontSample *shdr;  // the sample header list
+    uint16_t shdrSize;   // the size of the sample header list
 } SoundFontPdtaData;
 
 typedef struct SoundFontChunk {

@@ -38,6 +38,7 @@ static char *STR_PDTA_TYPE_INST = "inst";
 static char *STR_PDTA_TYPE_IBAG = "ibag";
 static char *STR_PDTA_TYPE_IMOD = "imod";
 static char *STR_PDTA_TYPE_IGEN = "igen";
+static char *STR_PDTA_TYPE_SHDR = "shdr";
 
 static bool read_pdta_preset_header(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
 static bool read_pdta_preset_index(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
@@ -47,6 +48,7 @@ static bool read_pdta_preset_inst(SoundFontPdtaData *pdta, uint32_t *pdtaSize, F
 static bool read_pdta_preset_ibag(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
 static bool read_pdta_inst_mod(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
 static bool read_pdta_inst_gen(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
+static bool read_pdta_shdr(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file);
 
 static void print_pdta_preset_header(SoundFontPdtaData *pdta);
 static void print_pdta_preset_index(SoundFontPdtaData *pdta);
@@ -56,6 +58,7 @@ static void print_pdta_preset_inst(SoundFontPdtaData *pdta);
 static void print_pdta_preset_ibag(SoundFontPdtaData *pdta);
 static void print_pdta_inst_mod(SoundFontPdtaData *pdta);
 static void print_pdta_inst_gen(SoundFontPdtaData *pdta);
+static void print_pdta_shdr(SoundFontPdtaData *pdta);
 
 uint32_t soundfont_read_size(FILE *file) {
     uint8_t chunkSize[4];
@@ -231,6 +234,14 @@ bool soundfont_read_pdta(SoundFontPdtaData *pdta, uint32_t size, FILE *file) {
         }
     }
 
+    if (soundfont_read_fourcc(fourcc, file)) {
+        pdtaSize -= 4;
+
+        if (0 == strcmp(STR_PDTA_TYPE_SHDR, fourcc)) {
+            read_pdta_shdr(pdta, &pdtaSize, file);
+        }
+    }
+
     return true;
 }
 
@@ -259,6 +270,9 @@ void soundfont_release_pdta(SoundFontPdtaData *pdta) {
     if (NULL != pdta->iGen) {
         free(pdta->iGen);
     }
+    if (NULL != pdta->shdr) {
+        free(pdta->shdr);
+    }
 }
 
 void soundfont_print_pdta(SoundFontPdtaData *pdta) {
@@ -270,6 +284,7 @@ void soundfont_print_pdta(SoundFontPdtaData *pdta) {
     print_pdta_preset_ibag(pdta);
     print_pdta_inst_mod(pdta);
     print_pdta_inst_gen(pdta);
+    print_pdta_shdr(pdta);
 }
 
 bool soundfont_read_sdta(SoundFontSdtaData *sdta, FILE *file) {
@@ -808,4 +823,107 @@ static void print_pdta_inst_gen(SoundFontPdtaData *pdta) {
         printf("operator : %d amount : %d\n", gen->operator, gen->amount);
     }
     printf("=== PDTA PRESET INSTRUMENT END   ===\n");
+}
+
+static bool read_pdta_shdr(SoundFontPdtaData *pdta, uint32_t *pdtaSize, FILE *file) {
+    uint32_t chunkSize = soundfont_read_size(file);
+    if (chunkSize <= 0) {
+        printf("Failed to fetch the size of the sample header.");
+        return false;
+    }
+    *pdtaSize -= 4;
+
+    uint16_t HEADER_SIZE = 46;
+    if (chunkSize % HEADER_SIZE != 0) {
+        printf("Broken data for the sample header.");
+        return false;
+    }
+    pdta->shdrSize = chunkSize / HEADER_SIZE;
+    pdta->shdr = (SoundFontSample *)malloc(sizeof(SoundFontSample) * pdta->shdrSize);
+
+    uint8_t buffer[4];
+    for (int i = 0; i < pdta->shdrSize; i++) {
+        SoundFontSample *header = pdta->shdr + i;
+
+        if (20 != fread(header->name, 1, 20, file)) {
+            return false;
+        }
+
+        if (4 == fread(&buffer, 1, 4, file)) {
+            header->start = buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24;
+        } else {
+            return false;
+        }
+
+        if (4 == fread(&buffer, 1, 4, file)) {
+            header->end = buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24;
+        } else {
+            return false;
+        }
+
+        if (4 == fread(&buffer, 1, 4, file)) {
+            header->startLoop = buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24;
+        } else {
+            return false;
+        }
+
+        if (4 == fread(&buffer, 1, 4, file)) {
+            header->endLoop = buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24;
+        } else {
+            return false;
+        }
+
+        if (4 == fread(&buffer, 1, 4, file)) {
+            header->sampleRate = buffer[0] | buffer[1] << 8 | buffer[2] << 16 | buffer[3] << 24;
+        } else {
+            return false;
+        }
+
+        if (1 == fread(&buffer, 1, 1, file)) {
+            header->originalPitch = buffer[0];
+        } else {
+            return false;
+        }
+
+        if (1 == fread(&buffer, 1, 1, file)) {
+            header->pitchCorrection = buffer[0];
+        } else {
+            return false;
+        }
+
+        if (2 == fread(&buffer, 1, 2, file)) {
+            header->sampleLink = buffer[0] | buffer[1] << 8;
+        } else {
+            return false;
+        }
+
+        if (2 == fread(&buffer, 1, 2, file)) {
+            header->sampleType = buffer[0] | buffer[1] << 8;
+        } else {
+            return false;
+        }
+    }
+
+    *pdtaSize -= chunkSize;
+
+    return true;
+}
+
+static void print_pdta_shdr(SoundFontPdtaData *pdta) {
+    printf("\n=== PDTA SAMPLE HEADER START ===\n");
+    for (int i = 0; i < pdta->shdrSize; i++) {
+        SoundFontSample *header = pdta->shdr + i;
+        printf("name : %s ", header->name);
+        printf("start : %d ", header->start);
+        printf("end : %d ", header->end);
+        printf("startLoop : %d ", header->startLoop);
+        printf("endLoop : %d ", header->endLoop);
+        printf("sampleRate : %d ", header->sampleRate);
+        printf("originalPitch : %d ", header->originalPitch);
+        printf("pitchCorrection : %c ", header->pitchCorrection);
+        printf("sampleLink : %d ", header->sampleLink);
+        printf("sampleType : %d ", header->sampleType);
+        printf("\n");
+    }
+    printf("=== PDTA SAMPLE HEADER END   ===\n");
 }
